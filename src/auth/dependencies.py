@@ -11,7 +11,7 @@ from src.db.models import User, ApiKey
 from src.db.redis import token_in_blocklist
 
 from .services import UserService
-from .utils import decode_token, generate_hash_key
+from .utils import decode_token, generate_hash_key, ApiKeyEncryption
 from src.errors import (
     InvalidToken,
     RefreshTokenRequired,
@@ -60,9 +60,9 @@ class TokenBearer(HTTPBearer):
         hashed_key = generate_hash_key(token)
         result = await session.exec(select(ApiKey).where(ApiKey.hashed_key == hashed_key).options(selectinload(ApiKey.user)))
         result = result.first()
-        if result is None:
-            raise InvalidApiKey()
-        return result
+        if result and token == ApiKeyEncryption().decrypt_data(result.key):
+            return result.user
+        raise InvalidApiKey()
 
 
 class AccessTokenBearer(TokenBearer):
@@ -79,11 +79,11 @@ class RefreshTokenBearer(TokenBearer):
 
 async def get_current_user(
     x_api_key: str = Header(None),
-    token_details: Union[dict, ApiKey] = Depends(AccessTokenBearer()),
+    token_details: Union[dict, User] = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
-    if type(token_details) == ApiKey:
-        return token_details.user
+    if type(token_details) == User:
+        return token_details
     user_email = token_details["user"]["email"]
 
     user = await user_service.get_user_by_email(user_email, session)
