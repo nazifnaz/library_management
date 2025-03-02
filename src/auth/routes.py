@@ -3,28 +3,30 @@ from http.client import HTTPException
 
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
-
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.auth.dependencies import RefreshTokenBearer, get_current_user, AccessTokenBearer
+from src.auth.dependencies import RefreshTokenBearer, get_current_user, AccessTokenBearer, RoleChecker
 from src.auth.schemas import UserCreateModel, PasswordResetRequestModel, PasswordResetConfirmModel, UserLoginModel, \
     UserBorrowingModel
 from src.auth.services import UserService
 from src.auth.utils import generate_password_hash, verify_password, create_access_token, \
     create_url_safe_token, decode_url_safe_token
+from src.celery_tasks import send_email
 from src.config import Config
+from src.db.enums import UserRole
 from src.db.main import get_session
 from src.db.redis import add_jti_to_blocklist
 from src.errors import UserAlreadyExists, UserNotFound, InvalidToken, InvalidCredentials
-from src.celery_tasks import send_email
 
 auth_router = APIRouter()
 user_service = UserService()
+admin_or_librarian_role_checker = RoleChecker([UserRole.ADMIN, UserRole.LIBRARIAN])
 REFRESH_TOKEN_EXPIRY = 2
 
 
 @auth_router.post("/add-user", status_code=status.HTTP_201_CREATED)
-async def create_user(user_data: UserCreateModel, session: AsyncSession = Depends(get_session),):
+async def create_user(user_data: UserCreateModel, session: AsyncSession = Depends(get_session),
+                      _: bool = Depends(admin_or_librarian_role_checker)):
     """
     Create user account using email, first_name, last_name, role
     params:
@@ -47,7 +49,7 @@ async def create_user(user_data: UserCreateModel, session: AsyncSession = Depend
 
 @auth_router.post("/login")
 async def login_users(
-    login_data: UserLoginModel, session: AsyncSession = Depends(get_session)
+        login_data: UserLoginModel, session: AsyncSession = Depends(get_session)
 ):
     email = login_data.email
     password = login_data.password
@@ -98,7 +100,7 @@ async def get_new_access_token(token_details: dict = Depends(RefreshTokenBearer(
 
 @auth_router.get("/me", response_model=UserBorrowingModel)
 async def get_current_user(
-    user=Depends(get_current_user),
+        user=Depends(get_current_user),
 ):
     return user
 
@@ -124,7 +126,7 @@ async def password_reset_request(email_data: PasswordResetRequestModel):
 
     html_message = f"""
     <h1>Reset Your Password</h1>
-    <p>Please click this <a href="{link}">link</a> to Reset Your Password</p>
+    <p> Please click this <a href="{link}">link</a> to Reset Your Password </p>
     """
     subject = "Reset Your Password"
 
@@ -139,9 +141,9 @@ async def password_reset_request(email_data: PasswordResetRequestModel):
 
 @auth_router.post("/password-reset-confirm/{token}")
 async def reset_account_password(
-    token: str,
-    passwords: PasswordResetConfirmModel,
-    session: AsyncSession = Depends(get_session),
+        token: str,
+        passwords: PasswordResetConfirmModel,
+        session: AsyncSession = Depends(get_session),
 ):
     new_password = passwords.new_password
     confirm_password = passwords.confirm_new_password

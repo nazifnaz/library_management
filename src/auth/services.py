@@ -1,9 +1,9 @@
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.celery_tasks import send_email
 from src.auth.schemas import UserCreateModel
 from src.auth.utils import generate_password_hash, ApiKeyEncryption, generate_random_key, generate_hash_key
+from src.celery_tasks import send_email
 from src.db.models import User, ApiKey
 
 
@@ -53,8 +53,7 @@ class UserService:
 
         return new_user
 
-    async def update_user(self, user:User , user_data: dict,session:AsyncSession):
-
+    async def update_user(self, user: User, user_data: dict, session: AsyncSession):
         for k, v in user_data.items():
             setattr(user, k, v)
 

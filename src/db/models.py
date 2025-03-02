@@ -2,8 +2,8 @@ from datetime import datetime, date
 from typing import Optional, List
 
 from pydantic import EmailStr
-from sqlmodel import SQLModel, Field, Column, Relationship
 from sqlalchemy.dialects import postgresql as pg
+from sqlmodel import SQLModel, Field, Column, Relationship
 
 from src.db.enums import UserRole, BoookCopyStatus, BorrowingStatus
 
@@ -22,8 +22,12 @@ class User(SQLModel, table=True):
                                  sa_column=Column(pg.TIMESTAMP, nullable=False, onupdate=datetime.now))
 
     # Relationships
-    borrowings: List["Borrowing"] = Relationship(back_populates="user", sa_relationship_kwargs={"lazy": "selectin", "foreign_keys": "[Borrowing.user_id]"})
+    borrowings: List["Borrowing"] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"lazy": "selectin", "foreign_keys": "[Borrowing.user_id]"},
+    )
     api_keys: Optional["ApiKey"] = Relationship(back_populates="user")
+
     def __repr__(self):
         return f"<User {self.email}>"
 
@@ -101,7 +105,8 @@ class BookCopy(SQLModel, table=True):
 
     # Relationships
     book: Book = Relationship(back_populates="book_copies")
-    borrowings: List["Borrowing"] = Relationship(back_populates="book_copy", sa_relationship_kwargs={"lazy": "selectin"})
+    borrowings: List["Borrowing"] = Relationship(back_populates="book_copy",
+                                                 sa_relationship_kwargs={"lazy": "selectin"})
 
 
 class Borrowing(SQLModel, table=True):
@@ -119,8 +124,9 @@ class Borrowing(SQLModel, table=True):
     accepted_by: int = Field(nullable=True, foreign_key="users.id")  # Librarian ID
 
     # Relationships
-    lended_user: Optional[User] =Relationship(sa_relationship_kwargs={"foreign_keys": "[Borrowing.accepted_by]"})
-    user: Optional[User] = Relationship(back_populates="borrowings", sa_relationship_kwargs={"foreign_keys": "[Borrowing.user_id]"})
+    lended_user: Optional[User] = Relationship(sa_relationship_kwargs={"foreign_keys": "[Borrowing.accepted_by]"})
+    user: Optional[User] = Relationship(back_populates="borrowings",
+                                        sa_relationship_kwargs={"foreign_keys": "[Borrowing.user_id]"})
     book_copy: BookCopy = Relationship(back_populates="borrowings")
 
 

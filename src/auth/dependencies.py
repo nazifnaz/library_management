@@ -2,16 +2,13 @@ from typing import Any, List, Union
 
 from fastapi import Depends, Request, Header
 from fastapi.security import HTTPBearer
+from sqlalchemy.orm import selectinload
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from src.db.main import get_session
 from src.db.models import User, ApiKey
 from src.db.redis import token_in_blocklist
-
-from .services import UserService
-from .utils import decode_token, generate_hash_key, ApiKeyEncryption
 from src.errors import (
     InvalidToken,
     RefreshTokenRequired,
@@ -19,6 +16,8 @@ from src.errors import (
     InsufficientPermission,
     UserNotActive, InvalidApiKey,
 )
+from .services import UserService
+from .utils import decode_token, generate_hash_key, ApiKeyEncryption
 
 user_service = UserService()
 
@@ -27,7 +26,7 @@ class TokenBearer(HTTPBearer):
     def __init__(self, auto_error=True):
         super().__init__(auto_error=auto_error)
 
-    async def __call__(self, request: Request, session: AsyncSession=Depends(get_session)):
+    async def __call__(self, request: Request, session: AsyncSession = Depends(get_session)):
         api_key_token = request.headers.get("X-API-Key")
         if api_key_token:
             return await self.verify_api_key(api_key_token, session)
@@ -56,9 +55,10 @@ class TokenBearer(HTTPBearer):
     def verify_token_data(self, token_data):
         raise NotImplementedError("Please Override this method in child classes")
 
-    async def verify_api_key(self, token:str, session: AsyncSession):
+    async def verify_api_key(self, token: str, session: AsyncSession):
         hashed_key = generate_hash_key(token)
-        result = await session.exec(select(ApiKey).where(ApiKey.hashed_key == hashed_key).options(selectinload(ApiKey.user)))
+        result = await session.exec(
+            select(ApiKey).where(ApiKey.hashed_key == hashed_key).options(selectinload(ApiKey.user)))
         result = result.first()
         if result and token == ApiKeyEncryption().decrypt_data(result.key):
             return result.user
@@ -78,9 +78,9 @@ class RefreshTokenBearer(TokenBearer):
 
 
 async def get_current_user(
-    x_api_key: str = Header(None),
-    token_details: Union[dict, User] = Depends(AccessTokenBearer()),
-    session: AsyncSession = Depends(get_session),
+        x_api_key: str = Header(None),
+        token_details: Union[dict, User] = Depends(AccessTokenBearer()),
+        session: AsyncSession = Depends(get_session),
 ):
     if type(token_details) == User:
         return token_details

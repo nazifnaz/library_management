@@ -8,7 +8,7 @@ from src.borrowings.schemas import BorrowingModel
 from src.db.enums import UserRole
 
 
-class RoleChoices(Enum):
+class RoleChoices(str, Enum):
     USER = "user"
     LIBRARIAN = "librarian"
 
@@ -17,7 +17,7 @@ class UserCreateModel(SQLModel):
     email: EmailStr
     first_name: str
     last_name: str
-    role: UserRole
+    role: RoleChoices
 
 
 class UserBorrowingModel(SQLModel):
