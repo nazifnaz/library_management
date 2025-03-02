@@ -23,8 +23,7 @@ class User(SQLModel, table=True):
 
     # Relationships
     borrowings: List["Borrowing"] = Relationship(
-        back_populates="user",
-        sa_relationship_kwargs={"lazy": "selectin", "foreign_keys": "[Borrowing.user_id]"},
+        back_populates="user", sa_relationship_kwargs={"lazy": "selectin","foreign_keys": "[Borrowing.user_id]"}
     )
     api_keys: Optional["ApiKey"] = Relationship(back_populates="user")
 
@@ -67,6 +66,30 @@ class Category(SQLModel, table=True):
     books: List["Book"] = Relationship(back_populates="categories", sa_relationship_kwargs={"lazy": "selectin"})
 
 
+class BookAuthor(SQLModel, table=True):
+    __tablename__ = "book_authors"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    book_id: int = Field(foreign_key="books.id", index=True)
+    author_id: int = Field(foreign_key="authors.id", index=True)
+
+    # Relationships
+    book: "Book" = Relationship(back_populates="authors")
+    author: Author = Relationship(back_populates="books")
+
+
+class BookCategory(SQLModel, table=True):
+    __tablename__ = "book_categories"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    book_id: int = Field(foreign_key="books.id", index=True)
+    category_id: int = Field(foreign_key="categories.id", index=True)
+
+    # Relationships
+    book: "Book" = Relationship(back_populates="categories")
+    category: Category = Relationship(back_populates="books")
+
+
 class Book(SQLModel, table=True):
     __tablename__ = "books"
 
@@ -78,7 +101,6 @@ class Book(SQLModel, table=True):
     publication_date: Optional[date] = None
     edition: Optional[str] = None
     language: str = "English"
-    category: Optional[int] = Field(default=None, foreign_key="categories.id")
     description: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.now, sa_column=Column(pg.TIMESTAMP, nullable=False))
     updated_at: datetime = Field(default_factory=datetime.now,
@@ -86,8 +108,16 @@ class Book(SQLModel, table=True):
 
     # Relationships
     publisher: Optional[Publisher] = Relationship(back_populates="books", sa_relationship_kwargs={"lazy": "selectin"})
-    categories: List[Category] = Relationship(back_populates="books", sa_relationship_kwargs={"lazy": "selectin"})
-    authors: List[Author] = Relationship(back_populates="books", sa_relationship_kwargs={"lazy": "selectin"})
+    categories: List[Category] = Relationship(
+        back_populates="books",
+        sa_relationship_kwargs={"lazy": "selectin"},
+        link_model=BookCategory
+    )
+    authors: List[Author] = Relationship(
+        back_populates="books",
+        sa_relationship_kwargs={"lazy": "selectin"},
+        link_model=BookAuthor
+    )
     book_copies: List["BookCopy"] = Relationship(back_populates="book", sa_relationship_kwargs={"lazy": "selectin"})
 
 
