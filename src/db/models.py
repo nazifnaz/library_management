@@ -15,14 +15,15 @@ class User(SQLModel, table=True):
     first_name: str
     last_name: str
     role: UserRole = Field(default=UserRole.USER)
+    is_active: bool = Field(default=True)
     password_hash: str = Field(sa_column=Column(pg.VARCHAR, nullable=False), exclude=True)
     created_at: datetime = Field(default_factory=datetime.now, sa_column=Column(pg.TIMESTAMP, nullable=False))
     updated_at: datetime = Field(default_factory=datetime.now,
                                  sa_column=Column(pg.TIMESTAMP, nullable=False, onupdate=datetime.now))
 
     # Relationships
-    borrowings: List["Borrowing"] = Relationship(back_populates="user", sa_relationship_kwargs={"lazy": "selectin"})
-
+    borrowings: List["Borrowing"] = Relationship(back_populates="user", sa_relationship_kwargs={"lazy": "selectin", "foreign_keys": "[Borrowing.user_id]"})
+    api_keys: Optional["ApiKey"] = Relationship(back_populates="user")
     def __repr__(self):
         return f"<User {self.email}>"
 
@@ -57,13 +58,8 @@ class Category(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     category_name: str = Field(unique=True, index=True)
-    parent_category_id: Optional[int] = Field(default=None, foreign_key="categories.id")
     description: Optional[str] = None
 
-    # Relationships
-    subcategories: List["Category"] = Relationship(back_populates="parent_category",
-                                                   sa_relationship_kwargs={"lazy": "selectin"})
-    parent_category: Optional["Category"] = Relationship(back_populates="subcategories")
     books: List["Book"] = Relationship(back_populates="categories", sa_relationship_kwargs={"lazy": "selectin"})
 
 
@@ -73,10 +69,12 @@ class Book(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     isbn: str = Field(unique=True, index=True)
     title: str = Field(index=True)
+    author_id: Optional[int] = Field(default=None, foreign_key="authors.id")
     publisher_id: Optional[int] = Field(default=None, foreign_key="publishers.id")
     publication_date: Optional[date] = None
     edition: Optional[str] = None
     language: str = "English"
+    category: Optional[int] = Field(default=None, foreign_key="categories.id")
     description: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.now, sa_column=Column(pg.TIMESTAMP, nullable=False))
     updated_at: datetime = Field(default_factory=datetime.now,
@@ -118,9 +116,20 @@ class Borrowing(SQLModel, table=True):
     extended_times: int = 0
     status: BorrowingStatus = Field(default=BorrowingStatus.REQUESTED)
     notes: Optional[str] = None
-    created_by: int = Field(foreign_key="users.id")  # Librarian ID
+    accepted_by: int = Field(nullable=True, foreign_key="users.id")  # Librarian ID
 
     # Relationships
-    user: User = Relationship(back_populates="borrowings")
+    lended_user: Optional[User] =Relationship(sa_relationship_kwargs={"foreign_keys": "[Borrowing.accepted_by]"})
+    user: Optional[User] = Relationship(back_populates="borrowings", sa_relationship_kwargs={"foreign_keys": "[Borrowing.user_id]"})
     book_copy: BookCopy = Relationship(back_populates="borrowings")
 
+
+class ApiKey(SQLModel, table=True):
+    __tablename__ = "api_keys"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    key: str = Field(index=True)  # This will store the encrypted API key (in base64)
+    created_at: datetime = Field(default_factory=datetime.now)
+    user_id: int = Field(foreign_key="users.id")  # Foreign key to the user who owns this key
+
+    user: "User" = Relationship(back_populates="api_keys")
