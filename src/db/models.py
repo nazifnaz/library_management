@@ -129,6 +129,7 @@ class ApiKey(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     key: str = Field(index=True)  # This will store the encrypted API key (in base64)
+    hashed_key: str = Field(index=True)  # This will store hashed API key for lookup
     created_at: datetime = Field(default_factory=datetime.now)
     user_id: int = Field(foreign_key="users.id")  # Foreign key to the user who owns this key
 

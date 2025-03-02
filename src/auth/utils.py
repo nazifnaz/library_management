@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import uuid
 from typing import Optional
@@ -31,6 +32,10 @@ class ApiKeyEncryption:
 def generate_random_key():
     uid = uuid.uuid4()
     return uid.hex
+
+
+def generate_hash_key(key: str):
+    return hashlib.sha256(key.encode()).hexdigest()
 
 
 def generate_password_hash(password: str) -> str:

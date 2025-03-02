@@ -1,17 +1,17 @@
-from typing import Any, List
+from typing import Any, List, Union
 
-from fastapi import Depends, Request
+from fastapi import Depends, Request, Header
 from fastapi.security import HTTPBearer
-from fastapi.security.http import HTTPAuthorizationCredentials
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.db.main import get_session
 from src.db.models import User, ApiKey
 from src.db.redis import token_in_blocklist
 
 from .services import UserService
-from .utils import decode_token, ApiKeyEncryption
+from .utils import decode_token, generate_hash_key
 from src.errors import (
     InvalidToken,
     RefreshTokenRequired,
@@ -27,10 +27,10 @@ class TokenBearer(HTTPBearer):
     def __init__(self, auto_error=True):
         super().__init__(auto_error=auto_error)
 
-    async def __call__(self, request: Request, session: AsyncSession=Depends(get_session)) -> HTTPAuthorizationCredentials | None:
+    async def __call__(self, request: Request, session: AsyncSession=Depends(get_session)):
         api_key_token = request.headers.get("X-API-Key")
         if api_key_token:
-            token_data = self.verify_api_key(api_key_token, session)
+            return await self.verify_api_key(api_key_token, session)
         else:
             creds = await super().__call__(request)
 
@@ -56,13 +56,13 @@ class TokenBearer(HTTPBearer):
     def verify_token_data(self, token_data):
         raise NotImplementedError("Please Override this method in child classes")
 
-    def verify_api_key(self, token:str, session: AsyncSession) -> dict:
-        encrypted_key = ApiKeyEncryption().encrypt_data(token)
-        result = await session.exec(select(ApiKey).where(ApiKey.key == encrypted_key))
+    async def verify_api_key(self, token:str, session: AsyncSession):
+        hashed_key = generate_hash_key(token)
+        result = await session.exec(select(ApiKey).where(ApiKey.hashed_key == hashed_key).options(selectinload(ApiKey.user)))
         result = result.first()
         if result is None:
             raise InvalidApiKey()
-        return {"user": {"email": result.user.email}}
+        return result
 
 
 class AccessTokenBearer(TokenBearer):
@@ -78,9 +78,12 @@ class RefreshTokenBearer(TokenBearer):
 
 
 async def get_current_user(
-    token_details: dict = Depends(AccessTokenBearer()),
+    x_api_key: str = Header(None),
+    token_details: Union[dict, ApiKey] = Depends(AccessTokenBearer()),
     session: AsyncSession = Depends(get_session),
 ):
+    if type(token_details) == ApiKey:
+        return token_details.user
     user_email = token_details["user"]["email"]
 
     user = await user_service.get_user_by_email(user_email, session)

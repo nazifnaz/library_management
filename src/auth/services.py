@@ -3,7 +3,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.celery_tasks import send_email
 from src.auth.schemas import UserCreateModel
-from src.auth.utils import generate_password_hash, ApiKeyEncryption, generate_random_key
+from src.auth.utils import generate_password_hash, ApiKeyEncryption, generate_random_key, generate_hash_key
 from src.db.models import User, ApiKey
 
 
@@ -24,13 +24,18 @@ class UserService:
         new_user = User(**user_data_dict)
         password = generate_random_key()
         api_key = generate_random_key()
+        print(api_key)
+        print("=======================")
+        print(password)
 
         new_user.password_hash = generate_password_hash(password)
 
         session.add(new_user)
         await session.flush()
 
-        session.add(ApiKey(key=ApiKeyEncryption().encrypt_data(api_key), user_id=new_user.id))
+        session.add(ApiKey(key=ApiKeyEncryption().encrypt_data(api_key),
+                           hashed_key=generate_hash_key(api_key),
+                           user_id=new_user.id))
 
         await session.commit()
         html = f"""

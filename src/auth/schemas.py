@@ -25,7 +25,7 @@ class UserBorrowingModel(SQLModel):
     first_name: str
     last_name: str
     role: UserRole
-    borrowings: BorrowingModel
+    borrowings: List[BorrowingModel]
 
 
 class UserLoginModel(SQLModel):

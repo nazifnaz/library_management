@@ -61,13 +61,13 @@ async def login_users(
             access_token = create_access_token(
                 user_data={
                     "email": user.email,
-                    "user_uid": str(user.uid),
+                    "user_id": str(user.id),
                     "role": user.role,
                 }
             )
 
             refresh_token = create_access_token(
-                user_data={"email": user.email, "user_uid": str(user.uid)},
+                user_data={"email": user.email, "user_id": str(user.id)},
                 refresh=True,
                 expiry=timedelta(days=REFRESH_TOKEN_EXPIRY),
             )
@@ -77,7 +77,7 @@ async def login_users(
                     "message": "Login successful",
                     "access_token": access_token,
                     "refresh_token": refresh_token,
-                    "user": {"email": user.email, "uid": str(user.uid)},
+                    "user": {"email": user.email, "id": str(user.id)},
                 }
             )
 
@@ -112,7 +112,6 @@ async def revoke_token(token_details: dict = Depends(AccessTokenBearer())):
     return JSONResponse(
         content={"message": "Logged Out Successfully"}, status_code=status.HTTP_200_OK
     )
-
 
 
 @auth_router.post("/password-reset-request")
