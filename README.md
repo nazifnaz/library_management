@@ -67,6 +67,6 @@ docker compose up -d
 
 ## Swagger API Docs
 
-```angular2html
-<host>\docs
+```
+http://localhost:8000/docs
 ```
