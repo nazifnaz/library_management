@@ -4,7 +4,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.enums import BorrowingStatus
-from src.db.models import Borrowing, User
+from src.db.models import Borrowing, User, BookCopy
 from .schemas import BorrowingCreateModel, BorrowingUpdateModel
 from ..errors import InsufficientPermission
 
@@ -29,14 +29,14 @@ class BorrowService:
     async def get_borrowings(
             self,
             session: AsyncSession,
-            skip: int = 0,
+            offset: int = 0,
             limit: int = 10,
             copy_id: Optional[int] = None,
             status: Optional[BorrowingStatus] = None,
             accepted_by: Optional[int] = None,
             user: User=None,
     ):
-        statement = select(Borrowing)
+        statement = select(Borrowing).join(BookCopy, Borrowing.copy_id == BookCopy.id)
 
         if not user.is_librarian():
             statement = statement.where(Borrowing.user_id == user.id)
@@ -47,7 +47,7 @@ class BorrowService:
         if accepted_by is not None:
             statement = statement.where(Borrowing.accepted_by == accepted_by)
 
-        statement = statement.offset(skip).limit(limit)
+        statement = statement.offset(offset).limit(limit)
         result = await session.exec(statement)
         borrowings = result.all()
         return borrowings

@@ -52,15 +52,10 @@ class BorrowingHistoryModel(SQLModel):
 
 
 class BorrowResponseModel(BorrowingModel):
-    user: UserBorrowingModel
-    lended_user: Optional[UserBorrowingModel]
-    book_copy: Optional[BookCopyModel]
+    pass
 
 
 class BorrowingFilterParams(FilterParams):
     copy_id: Optional[int] = None
-    borrowed_date: Optional[datetime] = None
-    due_date: Optional[datetime] = None
-    returned_date: Optional[datetime] = None
     status: Optional[BorrowingStatus] = None
     accepted_by: Optional[int] = None

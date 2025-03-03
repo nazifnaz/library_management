@@ -31,7 +31,7 @@ class UserBorrowingModel(SQLModel):
 
 class UserLoginModel(SQLModel):
     email: EmailStr
-    password: str = Field(min_length=6)
+    password: str
 
 
 class EmailModel(SQLModel):
