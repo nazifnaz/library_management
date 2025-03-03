@@ -11,7 +11,7 @@ from src.db.enums import UserRole
 class RoleChoices(str, Enum):
     USER = "user"
     LIBRARIAN = "librarian"
-    ADMIN = "admin"
+    # ADMIN = "admin"
 
 
 class UserCreateModel(SQLModel):
