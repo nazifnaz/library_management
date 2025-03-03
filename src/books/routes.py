@@ -1,6 +1,6 @@
-from typing import List
+from typing import List, Annotated
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.db.main import get_session
@@ -38,8 +38,9 @@ async def get_book(book_id: int, session: AsyncSession = Depends(get_session)):
 
 
 @book_router.get("/books/", response_model=List[schemas.BookResponseModel])
-async def get_books(skip: int = 0, limit: int = 10, session: AsyncSession = Depends(get_session)):
-    return await book_service.get_books(session, skip, limit)
+async def get_books(filter_params: Annotated[schemas.BookFilterParams, Query()], session: AsyncSession = Depends(get_session)):
+    params = filter_params.model_dump()
+    return await book_service.get_books(session, **params)
 
 
 @book_router.put("/books/{book_id}", response_model=schemas.BookResponseModel)

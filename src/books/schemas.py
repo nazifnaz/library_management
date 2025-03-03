@@ -4,6 +4,7 @@ from typing import Optional, List
 from sqlmodel import SQLModel
 
 from src.db.enums import BookCopyStatus
+from src.filters import FilterParams
 
 
 class AuthorModel(SQLModel):
@@ -158,3 +159,8 @@ class BookResponseModel(BookModel):
     publisher: PublisherModel
     categories: List[CategoryModel]
     book_copies: List[BookCopyModel]
+
+
+class BookFilterParams(FilterParams):
+    publisher_id: Optional[int] = None
+    title: Optional[str] = None

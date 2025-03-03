@@ -1,8 +1,17 @@
-from typing import List
+from typing import List, Optional
 
-from sqlmodel import select, delete
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.db.models import (
+    Author,
+    Publisher,
+    Category,
+    Book,
+    BookCopy,
+    BookAuthor,
+    BookCategory,
+)
 from .schemas import (
     BookCreateModel,
     BookUpdateModel,
@@ -14,15 +23,6 @@ from .schemas import (
     CategoryUpdateModel,
     BookCopyCreateModel,
     BookCopyUpdateModel,
-)
-from src.db.models import (
-    Author,
-    Publisher,
-    Category,
-    Book,
-    BookCopy,
-    BookAuthor,
-    BookCategory,
 )
 
 
@@ -39,8 +39,16 @@ class BookService:
         book = await session.exec(select(Book).where(Book.title == title))
         return book.first()
 
-    async def get_books(self, session: AsyncSession, skip: int = 0, limit: int = 10):
-        books = await session.exec(select(Book).offset(skip).limit(limit))
+    async def get_books(self, session: AsyncSession, publisher_id: Optional[int] = None,
+                        title: Optional[str] = None, offset: int = 0, limit: int = 10):
+        statement = select(Book)
+        if publisher_id:
+            statement = statement.where(Book.publisher_id == publisher_id)
+        if title:
+            statement = statement.where(Book.title == title)
+
+        statement = statement.offset(offset).limit(limit)
+        books = await session.exec(statement)
         return books.all()
 
     async def get_books_by_publisher(self, publisher_id: int, session: AsyncSession, skip: int = 0, limit: int = 10):

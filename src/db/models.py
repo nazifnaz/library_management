@@ -30,6 +30,9 @@ class User(SQLModel, table=True):
     def __repr__(self):
         return f"<User {self.email}>"
 
+    def is_librarian(self):
+        return self.role in [UserRole.LIBRARIAN, UserRole.ADMIN]
+
 
 class BookAuthor(SQLModel, table=True):
     __tablename__ = "book_authors"
