@@ -70,3 +70,8 @@ docker compose up -d
 ```
 http://localhost:8000/docs
 ```
+
+## Create admin user for testing
+```
+http://localhost:8000/api/v1/auth/admin
+```
