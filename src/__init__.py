@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from src.auth.routes import auth_router
@@ -8,13 +10,23 @@ from src.errors import register_all_errors
 
 version = "v1"
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    yield
+
+
 app = FastAPI(
     title="Library Management",
     description="""
     REST API for library management. 
     Librarian/Customer users will be able to manage borrowing/returning books.""",
     version=version,
+    lifespan=lifespan
 )
+
+
 
 register_all_errors(app)
 
