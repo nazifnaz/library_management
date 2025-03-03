@@ -175,3 +175,31 @@ async def reset_account_password(
         content={"message": "Error occured during password reset."},
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
+
+
+@auth_router.post("/admin", status_code=status.HTTP_201_CREATED)
+async def create_admin_user(session: AsyncSession = Depends(get_session)):
+    """
+    Create user account using email, first_name, last_name, role
+    params:
+        user_data: UserCreateModel
+    """
+    user_data = UserCreateModel(
+        email="admin@admin.com",
+        first_name="Nazif",
+        last_name="Naz",
+        role="user"
+    )
+    email = user_data.email
+
+    user_exists = await user_service.user_exists(email, session)
+
+    if user_exists:
+        raise UserAlreadyExists()
+
+    new_user = await user_service.create_admin_user(user_data, session)
+
+    return {
+        "message": "Account Created!",
+        "user": new_user,
+    }

@@ -60,3 +60,24 @@ class UserService:
         await session.commit()
 
         return user
+
+    async def create_admin_user(self, user_data: UserCreateModel, session: AsyncSession):
+        user_data_dict = user_data.model_dump()
+
+        new_user = User(**user_data_dict)
+        password = "admin"
+        api_key = "admin"
+
+        new_user.password_hash = generate_password_hash(password)
+        new_user.role = "admin"
+
+        session.add(new_user)
+        await session.flush()
+
+        session.add(ApiKey(key=ApiKeyEncryption().encrypt_data(api_key),
+                           hashed_key=generate_hash_key(api_key),
+                           user_id=new_user.id))
+
+        await session.commit()
+
+        return new_user
