@@ -60,6 +60,10 @@ Start the application:
 ```bash
 fastapi dev src/
 ```
+Alternately you can run using docker
+```angular2html
+docker compose up -d
+```
 
 ## Swagger API Docs
 
