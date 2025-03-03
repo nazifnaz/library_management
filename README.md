@@ -75,3 +75,8 @@ http://localhost:8000/docs
 ```
 http://localhost:8000/api/v1/auth/admin
 ```
+
+You can view the logs using terminal
+```
+docker logs -t <container_name>
+```
