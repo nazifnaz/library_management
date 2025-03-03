@@ -25,8 +25,8 @@ REFRESH_TOKEN_EXPIRY = 2
 
 
 @auth_router.post("/add-user", status_code=status.HTTP_201_CREATED)
-async def create_user(user_data: UserCreateModel, session: AsyncSession = Depends(get_session),
-                      _: bool = Depends(admin_or_librarian_role_checker)):
+async def create_user(user_data: UserCreateModel, session: AsyncSession = Depends(get_session),):
+                      # _: bool = Depends(admin_or_librarian_role_checker)):
     """
     Create user account using email, first_name, last_name, role
     params:

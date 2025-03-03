@@ -1,8 +1,8 @@
 """initial migration
 
-Revision ID: eb5eece648ad
+Revision ID: 3bcfd775b569
 Revises: 
-Create Date: 2025-03-02 18:01:04.642604
+Create Date: 2025-03-03 07:12:28.952057
 
 """
 from typing import Sequence, Union
@@ -13,7 +13,7 @@ import sqlmodel
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = 'eb5eece648ad'
+revision: str = '3bcfd775b569'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -50,6 +50,7 @@ def upgrade() -> None:
     sa.Column('first_name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('last_name', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('role', sa.Enum('ADMIN', 'LIBRARIAN', 'USER', name='userrole'), nullable=False),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.Column('password_hash', sa.VARCHAR(), nullable=False),
     sa.Column('created_at', postgresql.TIMESTAMP(), nullable=False),
     sa.Column('updated_at', postgresql.TIMESTAMP(), nullable=False),
@@ -59,11 +60,13 @@ def upgrade() -> None:
     op.create_table('api_keys',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('key', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('hashed_key', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_index(op.f('ix_api_keys_hashed_key'), 'api_keys', ['hashed_key'], unique=False)
     op.create_index(op.f('ix_api_keys_key'), 'api_keys', ['key'], unique=False)
     op.create_table('books',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -74,17 +77,29 @@ def upgrade() -> None:
     sa.Column('publication_date', sa.Date(), nullable=True),
     sa.Column('edition', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('language', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('category', sa.Integer(), nullable=True),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('created_at', postgresql.TIMESTAMP(), nullable=False),
     sa.Column('updated_at', postgresql.TIMESTAMP(), nullable=False),
     sa.ForeignKeyConstraint(['author_id'], ['authors.id'], ),
-    sa.ForeignKeyConstraint(['category'], ['categories.id'], ),
     sa.ForeignKeyConstraint(['publisher_id'], ['publishers.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_books_isbn'), 'books', ['isbn'], unique=True)
     op.create_index(op.f('ix_books_title'), 'books', ['title'], unique=False)
+    op.create_table('book_authors',
+    sa.Column('book_id', sa.Integer(), nullable=False),
+    sa.Column('author_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['author_id'], ['authors.id'], ),
+    sa.ForeignKeyConstraint(['book_id'], ['books.id'], ),
+    sa.PrimaryKeyConstraint('book_id', 'author_id')
+    )
+    op.create_table('book_categories',
+    sa.Column('book_id', sa.Integer(), nullable=False),
+    sa.Column('category_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['book_id'], ['books.id'], ),
+    sa.ForeignKeyConstraint(['category_id'], ['categories.id'], ),
+    sa.PrimaryKeyConstraint('book_id', 'category_id')
+    )
     op.create_table('book_copies',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('book_id', sa.Integer(), nullable=False),
@@ -128,10 +143,13 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_book_copies_copy_number'), table_name='book_copies')
     op.drop_index(op.f('ix_book_copies_book_id'), table_name='book_copies')
     op.drop_table('book_copies')
+    op.drop_table('book_categories')
+    op.drop_table('book_authors')
     op.drop_index(op.f('ix_books_title'), table_name='books')
     op.drop_index(op.f('ix_books_isbn'), table_name='books')
     op.drop_table('books')
     op.drop_index(op.f('ix_api_keys_key'), table_name='api_keys')
+    op.drop_index(op.f('ix_api_keys_hashed_key'), table_name='api_keys')
     op.drop_table('api_keys')
     op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')

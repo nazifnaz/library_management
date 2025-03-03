@@ -10,7 +10,7 @@ class UserRole(str, Enum):
     USER = "user"
 
 
-class BoookCopyStatus(str, Enum):
+class BookCopyStatus(str, Enum):
     """
     Enum for bookcopy status.
     """

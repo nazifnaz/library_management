@@ -228,3 +228,13 @@ def register_all_errors(app: FastAPI):
             },
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+
+    @app.exception_handler(ValueError)
+    async def database__error(request, exc):
+        return JSONResponse(
+            content={
+                "message": exc.args[0],
+                "error_code": "Value error",
+            },
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )

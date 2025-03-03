@@ -3,7 +3,7 @@ from typing import Optional, List
 
 from sqlmodel import SQLModel
 
-from src.db.enums import UserRole, BookCopyStatus
+from src.db.enums import BookCopyStatus
 
 
 class AuthorModel(SQLModel):
@@ -67,12 +67,10 @@ class BookModel(SQLModel):
     id: int
     isbn: str
     title: str
-    author_id: int
     publisher_id: int
     publication_date: datetime
     edition: str
     language: str
-    category: int
     description: Optional[str]
     created_at: datetime
     updated_at: datetime
@@ -81,24 +79,24 @@ class BookModel(SQLModel):
 class BookCreateModel(SQLModel):
     isbn: str
     title: str
-    author_id: int
+    authors: List[int]
     publisher_id: int
     publication_date: datetime
     edition: str
     language: str
-    category: int
+    categories: List[int]
     description: Optional[str]
 
 
 class BookUpdateModel(SQLModel):
     isbn: Optional[str] = None
     title: Optional[str] = None
-    author_id: Optional[int] = None
+    authors: Optional[List[int]] = None
     publisher_id: Optional[int] = None
     publication_date: Optional[datetime] = None
     edition: Optional[str] = None
     language: Optional[str] = None
-    category: Optional[int] = None
+    categories: Optional[List[int]] = None
     description: Optional[str] = None
 
 
@@ -133,6 +131,16 @@ class BookCopyUpdateModel(SQLModel):
     notes: Optional[str] = None
 
 
+class BookCopyResponseModel(SQLModel):
+    book_id: int
+    copy_number: str
+    price: Optional[float] = None
+    status: BookCopyStatus
+    location: Optional[str] = None
+    condition: Optional[str] = None
+    notes: Optional[str] = None
+
+
 class AuthorResponseModel(AuthorModel):
     books: List[BookModel]
 
@@ -146,7 +154,7 @@ class CategoryResponseModel(CategoryModel):
 
 
 class BookResponseModel(BookModel):
-    author: List[AuthorModel]
+    authors: List[AuthorModel]
     publisher: PublisherModel
     categories: List[CategoryModel]
     book_copies: List[BookCopyModel]

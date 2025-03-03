@@ -5,7 +5,7 @@ from pydantic import EmailStr
 from sqlalchemy.dialects import postgresql as pg
 from sqlmodel import SQLModel, Field, Column, Relationship
 
-from src.db.enums import UserRole, BoookCopyStatus, BorrowingStatus
+from src.db.enums import UserRole, BookCopyStatus, BorrowingStatus
 
 
 class User(SQLModel, table=True):
@@ -31,6 +31,20 @@ class User(SQLModel, table=True):
         return f"<User {self.email}>"
 
 
+class BookAuthor(SQLModel, table=True):
+    __tablename__ = "book_authors"
+
+    book_id: int = Field(foreign_key="books.id", primary_key=True)
+    author_id: int = Field(foreign_key="authors.id", primary_key=True)
+
+
+class BookCategory(SQLModel, table=True):
+    __tablename__ = "book_categories"
+
+    book_id: int = Field(foreign_key="books.id", primary_key=True)
+    category_id: int = Field(foreign_key="categories.id", primary_key=True)
+
+
 class Author(SQLModel, table=True):
     __tablename__ = "authors"
 
@@ -39,7 +53,8 @@ class Author(SQLModel, table=True):
     last_name: str
 
     # Relationships
-    books: List["Book"] = Relationship(back_populates="authors", sa_relationship_kwargs={"lazy": "selectin"})
+    books: List["Book"] = Relationship(back_populates="authors", sa_relationship_kwargs={"lazy": "selectin"},
+                                       link_model=BookAuthor)
 
 
 class Publisher(SQLModel, table=True):
@@ -63,31 +78,8 @@ class Category(SQLModel, table=True):
     category_name: str = Field(unique=True, index=True)
     description: Optional[str] = None
 
-    books: List["Book"] = Relationship(back_populates="categories", sa_relationship_kwargs={"lazy": "selectin"})
-
-
-class BookAuthor(SQLModel, table=True):
-    __tablename__ = "book_authors"
-
-    id: Optional[int] = Field(default=None, primary_key=True)
-    book_id: int = Field(foreign_key="books.id", index=True)
-    author_id: int = Field(foreign_key="authors.id", index=True)
-
-    # Relationships
-    book: "Book" = Relationship(back_populates="authors")
-    author: Author = Relationship(back_populates="books")
-
-
-class BookCategory(SQLModel, table=True):
-    __tablename__ = "book_categories"
-
-    id: Optional[int] = Field(default=None, primary_key=True)
-    book_id: int = Field(foreign_key="books.id", index=True)
-    category_id: int = Field(foreign_key="categories.id", index=True)
-
-    # Relationships
-    book: "Book" = Relationship(back_populates="categories")
-    category: Category = Relationship(back_populates="books")
+    books: List["Book"] = Relationship(back_populates="categories", sa_relationship_kwargs={"lazy": "selectin"},
+                                       link_model=BookCategory)
 
 
 class Book(SQLModel, table=True):
@@ -111,7 +103,7 @@ class Book(SQLModel, table=True):
     categories: List[Category] = Relationship(
         back_populates="books",
         sa_relationship_kwargs={"lazy": "selectin"},
-        link_model=BookCategory
+        link_model=BookCategory,
     )
     authors: List[Author] = Relationship(
         back_populates="books",
@@ -128,7 +120,7 @@ class BookCopy(SQLModel, table=True):
     book_id: int = Field(foreign_key="books.id", index=True)
     copy_number: str = Field(unique=True, index=True)
     price: Optional[float] = None
-    status: BoookCopyStatus = Field(default=BoookCopyStatus.AVAILABLE, sa_column=Column(pg.VARCHAR(20)))
+    status: BookCopyStatus = Field(default=BookCopyStatus.AVAILABLE, sa_column=Column(pg.VARCHAR(20)))
     location: Optional[str] = None
     condition: Optional[str] = None
     notes: Optional[str] = None
